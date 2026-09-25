@@ -1,0 +1,835 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RTL-SDR Receiver &mdash; Interactive Tour</title>
+<style>
+  :root { --bg:#0e1116; --accent:#94a3b8; --accent-deep:#64748B; --panel:#0000002e;
+          --text:#e6e6e6; --muted:#9aa0a6; --good:#4ade80; --bad:#f87171; --warn:#fbbf24; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+  header{padding:18px 24px;border-bottom:1px solid #ffffff14}
+  header h1{margin:0;font-size:20px;color:var(--accent)}
+  header p{margin:6px 0 0;color:var(--muted);font-size:13px}
+  header .persist-note{margin-top:4px;font-size:11px;color:var(--muted);opacity:.8}
+  .badge{display:inline-block;background:var(--accent-deep);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;padding:12px 24px;border-bottom:1px solid #ffffff14}
+  .pill{font-size:12px;padding:4px 10px;border:1px solid #ffffff22;border-radius:999px;color:var(--muted);cursor:pointer;background:transparent}
+  .pill.active{background:var(--accent);color:#0e1116;font-weight:600;border-color:var(--accent)}
+  .pill.done{border-color:var(--good);color:var(--good)}
+  .pill.tool{border-style:dashed}
+  main{display:grid;grid-template-columns:1fr 1fr;min-height:60vh}
+  @media (max-width:880px){main{grid-template-columns:1fr}.lesson{border-right:none!important;border-bottom:1px solid #ffffff14}}
+  .lesson,.practice{padding:22px 24px}
+  .lesson{border-right:1px solid #ffffff14}
+  .lesson h2{color:var(--accent);margin-top:0;font-size:18px}
+  .lesson ul{padding-left:18px}.lesson li{margin:6px 0}
+  .trap{border-left:3px solid var(--warn);background:#fbbf2410;padding:10px 12px;border-radius:4px;margin:12px 0;font-size:14px}
+  .trap b{color:var(--warn)}
+  .worked{border-left:3px solid var(--accent-deep);background:#ffffff08;padding:10px 12px;border-radius:4px;margin:12px 0;font-size:14px}
+  figure{margin:14px 0}figcaption{color:var(--muted);font-size:12px;margin-top:6px}
+  .practice h3{margin-top:0;color:var(--accent);font-size:16px}
+  .nav{display:flex;gap:10px;align-items:center;padding:14px 24px;border-top:1px solid #ffffff14}
+  button{font:inherit}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+  button.ghost:disabled{opacity:.35;cursor:not-allowed}
+  .counter{color:var(--muted);font-size:13px;margin-left:auto}
+  .qc{margin-top:16px;border-top:1px solid #ffffff14;padding-top:14px}
+  .qc h4{margin:0 0 8px;font-size:14px;color:var(--accent)}
+  .opt{all:unset;display:flex;align-items:center;gap:8px;padding:8px 10px;margin:4px 0;border:1px solid #ffffff1a;border-radius:8px;cursor:pointer;font-size:14px}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{border-color:var(--good);background:#4ade8018}
+  .opt.wrong{border-color:var(--bad);background:#f8717118}
+  .opt[disabled]{cursor:default}
+  .explain{display:none;margin-top:8px;font-size:13px;color:var(--muted);border-left:2px solid var(--accent-deep);padding-left:10px}
+  .links{margin-top:14px;font-size:13px}
+  .links a{color:var(--accent);display:inline-block;margin:3px 0}
+  .links .kind{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
+  .video-card{display:flex;gap:10px;align-items:center;border:1px solid #ffffff1a;border-radius:8px;padding:8px;text-decoration:none;color:var(--text);margin-top:6px}
+  .video-card:hover{border-color:var(--accent)}
+  .video-card-thumb{width:96px;height:54px;border-radius:4px;background-size:cover;background-position:center;position:relative;flex-shrink:0}
+  .video-card-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;text-shadow:0 0 6px #000}
+  .video-card-info b{display:block;font-size:13px}
+  .video-card-info span{color:var(--muted);font-size:12px}
+  table.cheat{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}
+  table.cheat td,table.cheat th{border:1px solid #ffffff14;padding:6px 8px;text-align:left}
+  table.cheat th{color:var(--accent)}
+  code{background:#ffffff12;padding:1px 5px;border-radius:3px;font-family:ui-monospace,monospace;font-size:13px}
+  .quiz-wrap{padding:22px 24px;border-top:1px solid #ffffff14}
+  .q{margin-bottom:18px}.q p{font-weight:600;margin:0 0 6px}
+  #score{font-weight:700;color:var(--accent)}
+  .flash-stage{display:flex;justify-content:center;padding:18px 0;perspective:1200px}
+  .flash-card{width:min(420px,90%);height:190px;position:relative;cursor:pointer;transform-style:preserve-3d;transition:transform .45s}
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid #ffffff22;border-radius:12px;
+              display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;font-size:16px}
+  .flash-front{background:#ffffff08;color:var(--text);font-weight:700}
+  .flash-back{background:var(--accent-deep);color:#fff;transform:rotateY(180deg);font-size:14px;font-weight:400}
+  .flash-controls{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:8px}
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .match-col{display:flex;flex-direction:column;gap:8px}
+  .match-btn{all:unset;padding:10px 12px;border:1px solid #ffffff1a;border-radius:8px;cursor:pointer;font-size:13px;text-align:left}
+  .match-btn:hover{border-color:var(--accent)}
+  .match-btn.sel{border-color:var(--accent);background:#94a3b818}
+  .match-btn.matched{border-color:var(--good);background:#4ade8018;opacity:.55;cursor:default}
+  .match-btn.wrong{border-color:var(--bad);background:#f8717118}
+  .sdr-section{border:1px solid #ffffff1a;border-radius:8px;padding:14px 16px;margin-top:14px}
+  .sdr-section h4{margin:0 0 8px;color:var(--accent);font-size:14px}
+  .sdr-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px;margin:6px 0}
+  .sdr-row label{color:var(--muted);display:flex;align-items:center;gap:5px}
+  .sdr-row input[type=number]{width:70px;background:#ffffff0c;border:1px solid #ffffff22;border-radius:6px;color:var(--text);padding:4px 8px;font-family:ui-monospace,monospace;font-size:13px}
+  .sdr-row select{background:#ffffff0c;border:1px solid #ffffff22;border-radius:6px;color:var(--text);padding:4px 8px;font-size:13px}
+  .sdr-plot{background:#000;border-radius:6px;padding:8px;margin-top:8px}
+  .sdr-plot svg{width:100%;height:auto;display:block}
+  .sdr-readout{background:#000;border-radius:6px;padding:10px 12px;margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#94a3b8}
+  .sdr-readout b{color:var(--accent)}
+  .sdr-hexrow{display:flex;gap:8px;align-items:center;margin:6px 0}
+  .sdr-hexrow input[type=text]{flex:1;background:#ffffff0c;border:1px solid #ffffff22;border-radius:6px;color:var(--text);padding:5px 8px;font-family:ui-monospace,monospace;font-size:13px}
+  .report-card{border:1px solid #ffffff22;border-radius:10px;padding:20px 22px;max-width:560px}
+  .report-card h4{margin:16px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .report-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #ffffff10;font-size:14px}
+  .report-row .grade{font-weight:700}
+  .grade-A{color:var(--good)} .grade-B{color:#a3e635} .grade-C{color:var(--warn)} .grade-D,.grade-F{color:var(--bad)} .grade-dash{color:var(--muted)}
+  .report-overall{display:flex;align-items:baseline;gap:10px;margin:14px 0}
+  .report-overall .big{font-size:40px;font-weight:800}
+  #printBtn{margin-top:16px}
+  @media print{
+    header .persist-note, .pills, #nav, .report-card #printBtn{display:none!important}
+    body{background:#fff;color:#111}
+    .report-card{border-color:#ccc;max-width:none}
+    .report-row{border-bottom-color:#ddd}
+  }
+</style></head>
+<body>
+<header>
+  <h1>RTL-SDR Receiver <span class="badge">Chain K &middot; Hands-on</span></h1>
+  <p>IQ sampling &amp; software demodulation &rarr; FM broadcast with GQRX &rarr; ADS-B aircraft
+     decoding &rarr; NOAA weather satellites &amp; antennas. Run real AM/FM demodulation math on
+     synthetic IQ samples, and manually decode a real aircraft message's fields, in the
+     <b>IQ &amp; Demodulation Simulator</b> tab before you're doing it against live RF.</p>
+  <p class="persist-note">Progress (quick checks, quiz score, flashcards known) saves in this browser
+     only &mdash; localStorage, not an account. Clearing site data or switching browsers resets it.</p>
+</header>
+
+<div class="pills" id="pills"></div>
+
+<main>
+  <section class="lesson" id="lesson"></section>
+  <section class="practice" id="practice"></section>
+</main>
+
+<div class="nav" id="nav">
+  <button class="ghost" id="prev">&larr; Previous</button>
+  <button class="ghost" id="next">Next &rarr;</button>
+  <span class="counter" id="counter"></span>
+</div>
+
+<div class="quiz-wrap" id="quizWrap" style="display:none">
+  <h3 style="color:var(--accent);margin-top:0">Check Your Understanding</h3>
+  <div id="quiz"></div>
+  <p>Score: <span id="score">0</span> / <span id="total"></span></p>
+</div>
+
+<div class="quiz-wrap" id="toolWrap" style="display:none"></div>
+
+<script>
+const LESSONS = [
+{
+  short:"SDR fundamentals",
+  title:"IQ sampling: why software does what a chip used to hide",
+  body:`<p>A traditional radio hides demodulation behind dedicated analog or digital circuitry built
+  for exactly one signal type. An SDR dongle instead hands you raw samples and lets software do that
+  math — which means the <i>same</i> $30 dongle can decode FM broadcast, aircraft transponders, or
+  weather satellites, just by running different math on the same kind of data.</p>
+  <ul><li>Each <b>IQ sample</b> is a complex number — an In-phase (I) and Quadrature (Q) component
+  together — capturing both the signal's instantaneous <b>magnitude</b> (amplitude) and <b>phase</b> at
+  that moment, not just a single real-valued number the way a simple amplitude reading would.</li>
+  <li>The dongle samples a whole chunk of spectrum around whatever frequency it's tuned to (up to a few
+  MHz wide) all at once, as a continuous stream of these IQ samples.</li>
+  <li><b>Demodulation is just math on that stream</b> once you have it: AM demodulation reads the
+  magnitude, FM demodulation reads how fast the phase is changing — genuinely different algorithms
+  applied to the exact same kind of raw data.</li></ul>
+  <div class="trap"><b>The trap — a listed Common Mistake:</b> buying a generic "USB TV tuner" instead
+  of a dongle explicitly sold as RTL-SDR. Many look identical in photos but use a different tuner chip
+  entirely — worse performance, and sometimes not compatible with SDR software at all. Buy one
+  explicitly branded/sold as RTL-SDR (the RTL2832U + R820T2 chipset combination is the de facto
+  standard).</div>
+  <div class="worked"><b>Worked:</b> AM demodulation and FM demodulation are genuinely different
+  algorithms — magnitude versus phase-rate-of-change — run on the exact same kind of IQ sample stream.
+  Try both in the <b>IQ &amp; Demodulation Simulator</b> tab and watch the same underlying data type
+  get processed two completely different ways.</div>`,
+  practice:`<h3>Practice — IQ & Demodulation Simulator</h3>
+  <ol><li>Open the <b>IQ &amp; Demodulation Simulator</b> tab and switch between AM and FM mode on the
+  same synthetic tone. Notice that both start from the same I/Q inputs.</li></ol>`,
+  quick:{ q:"What does a single IQ sample actually capture, that a simple real-valued amplitude reading wouldn't?",
+    choices:["Both the signal's magnitude AND its phase at that instant, as a complex number","Only the signal's frequency, never its amplitude","The exact transmitting station's ID","Nothing extra — IQ samples are identical to plain amplitude samples"],
+    a:0, ex:"An IQ sample is a complex number (I + jQ), which encodes magnitude and phase together. That's exactly the extra information FM demodulation needs (phase change over time) that a plain amplitude sample couldn't provide." },
+  links:[
+    {type:"read", label:"rtl-sdr.com — A Good Quickstart Guide for RTL-SDR Linux Users", url:"https://www.rtl-sdr.com/a-good-quickstart-guide-for-rtl-sdr-linux-users/"}
+  ]
+},
+{
+  short:"FM/AM & GQRX",
+  title:"Demodulating FM broadcast: the simplest starting point",
+  body:`<p>FM broadcast radio is the easiest first real signal: strong, wideband, and well within any
+  RTL-SDR's covered spectrum — a good place to confirm the whole signal chain (antenna → dongle →
+  GQRX → audio) actually works before decoding anything harder.</p>
+  <ul><li><b>GQRX's waterfall display</b> plots frequency (horizontal) against time (vertical), with
+  color showing signal strength — a visual map of everything currently on the air, before you've
+  demodulated anything.</li>
+  <li>Select <b>WFM (mono or stereo)</b> as the demodulation mode for broadcast FM, tune to a strong
+  local station's frequency, and adjust <b>squelch</b> (a threshold that mutes audio below a certain
+  signal strength) so weak noise doesn't drown out a real signal.</li>
+  <li>The same 433MHz ISM band many simple wireless devices (weather stations, sensors, remotes) use is
+  decodable with <code>rtl_433</code> — worth exploring once FM broadcast is working reliably.</li></ul>
+  <div class="trap"><b>The trap — a listed Common Mistake:</b> USB port RF noise swamping weak signals.
+  A dongle plugged directly into a laptop's USB port sits right next to a noisy source of RF
+  interference — the computer itself. A basic USB extension cable, moving the dongle a few feet away,
+  fixes this far more often than any software setting does.</div>
+  <div class="worked"><b>Worked:</b> a station that's inaudible (or drowned in static) plugged directly
+  into a laptop often comes in clean once the dongle is moved a few feet away on an extension cable —
+  same antenna, same software, same frequency, only the USB noise source changed.</div>`,
+  practice:`<h3>Practice — get on the air</h3>
+  <ol><li>Tune to a strong local FM broadcast station in GQRX (or the Simulator, if you don't have
+  hardware yet) and confirm clean audio before moving on to anything harder.</li></ol>`,
+  quick:{ q:"A signal is weak and noisy at literally every frequency you tune to, but improves noticeably once the dongle is moved away from the laptop on a USB extension cable. What's the most likely cause?",
+    choices:["USB port RF noise from the computer itself swamping weak signals","The antenna is the wrong length for every possible frequency","GQRX's squelch setting is too low","The RTL-SDR dongle is defective"],
+    a:0, ex:"A problem that affects every frequency equally, and improves with physical distance from the computer, points to broadband RF noise from the USB port/computer itself — not a frequency-specific antenna or software issue." },
+  links:[
+    {type:"watch", vid:"7pgCC4cqgTc", channel:"TheSmokinApe Ham Radio", label:"RTL-SDR on Raspberry Pi 3 B+ with GQRX", url:"https://www.youtube.com/watch?v=7pgCC4cqgTc"}
+  ]
+},
+{
+  short:"ADS-B decoding",
+  title:"Decoding real aircraft ADS-B transponder messages",
+  body:`<p>ADS-B ("Automatic Dependent Surveillance-Broadcast") is the modern replacement for a lot of
+  radar-based tracking: aircraft broadcast their own position, altitude, and identity on 1090MHz, and
+  <code>dump1090</code> turns those raw broadcasts into a live map of nearby traffic.</p>
+  <ul><li>Every ADS-B <b>Extended Squitter</b> message's first byte encodes a 5-bit <b>Downlink Format
+  (DF)</b> in its top bits — <b>DF 17</b> specifically means "this is an ADS-B Extended Squitter," the
+  message type this project decodes.</li>
+  <li>The next 3 bytes (24 bits, byte-aligned right after the DF byte) are the aircraft's <b>ICAO
+  address</b> — a fixed identifier for that specific airframe. It stays constant across every message
+  from that plane, even as position, altitude, and velocity fields change message to message.</li>
+  <li>Later bytes carry position (using a clever technique called Compact Position Reporting, which
+  needs two messages to resolve an exact location), altitude, velocity, or callsign, depending on the
+  message's <b>type code</b> — and the whole message ends in a CRC for integrity.</li></ul>
+  <div class="trap"><b>The trap — a listed Common Mistake:</b> a mismatched antenna for the wrong band.
+  A generic FM whip receives 1090MHz far worse than a dedicated ADS-B antenna tuned for that specific
+  frequency — the same "wrong tool for the band" problem, just at a different frequency than the FM
+  case.</div>
+  <div class="worked"><b>Worked:</b> the raw message <code>8D4840D6202CC371C32CE0576098</code> decodes
+  by hand to DF 17 (top 5 bits of byte 0: <code>1000 1101</code> &rarr; <code>10001</code> = 17) and
+  ICAO address <code>4840D6</code> (the next 3 bytes) — exactly what <code>dump1090</code>'s own output
+  reports for that message, and exactly what <code>exercises/sdr_dsp.py</code>'s tests check.</div>`,
+  practice:`<h3>Practice — IQ & Demodulation Simulator</h3>
+  <ol><li>Open the Simulator's ADS-B decoder panel and paste in a raw message. Confirm the DF and ICAO
+  address it extracts match what you'd get working through the bits by hand.</li></ol>`,
+  quick:{ q:"Why does an aircraft's ICAO address stay exactly the same across many different ADS-B messages, while fields like position and altitude keep changing?",
+    choices:["The ICAO address is a fixed identifier for that specific airframe, byte-aligned right after the Downlink Format byte on every message it sends","The ICAO address changes with the plane's altitude","Every aircraft broadcasts the same shared ICAO address","ICAO addresses are randomly regenerated for each message"],
+    a:0, ex:"The ICAO address is the aircraft's fixed identity, not a measurement — that's exactly why it stays constant while position/altitude/velocity fields (which do change) update from message to message." },
+  links:[
+    {type:"watch", vid:"J6JlKbOE7_A", channel:"Fuzz The Pi Guy", label:"How To Install Dump1090, FlightAware, And More On A Raspberry Pi", url:"https://www.youtube.com/watch?v=J6JlKbOE7_A"}
+  ]
+},
+{
+  short:"APT weather sats & antennas",
+  title:"Receiving NOAA weather satellites, and why antenna matching changes everything",
+  body:`<p>NOAA's polar-orbiting weather satellites transmit APT (Automatic Picture Transmission) images
+  at ~137MHz as they pass overhead — a roughly 10-15 minute window where the same $30 dongle can pull
+  down an actual, real weather photo of your region.</p>
+  <ul><li>A pass is recorded as an audio-like signal, then decoded (with <code>noaa-apt</code> or
+  WXtoIMG) into a real image — line by line, matching how the satellite actually scans the Earth below
+  it.</li>
+  <li><b>Antenna matching matters more here than almost anywhere else in this project.</b> A dedicated
+  137MHz antenna (a QFH — quadrifilar helix — or even a simple V-dipole) dramatically outperforms a
+  generic whip, partly because it's tuned for the exact frequency and partly because a QFH's circular
+  polarization matches the satellite's own rotating polarization as it passes overhead — a basic
+  linear-polarized whip loses signal specifically because of that mismatch, not just general weakness.</li></ul>
+  <div class="trap"><b>The trap — a listed Common Mistake:</b> a whip antenna with no ground plane
+  underperforming badly indoors. This is the single biggest lever in the entire project — the same
+  dongle and software can go from unusable noise to a clean image purely from an antenna and location
+  change, with zero software troubleshooting involved.</div>
+  <div class="worked"><b>Worked:</b> the exact same RTL-SDR dongle and decoding software can produce a
+  garbled, unusable image with a mismatched indoor whip antenna, and a clean two-channel (visible +
+  infrared) image with a matched outdoor antenna during the same satellite pass — the electronics never
+  changed, only the antenna and its placement did.</div>`,
+  practice:`<h3>Practice — plan a real capture</h3>
+  <ol><li>Look up the next visible NOAA satellite pass for your location (several free pass-prediction
+  tools exist) and plan where you'd place an antenna outdoors, away from obstructions, before that
+  pass.</li></ol>`,
+  quick:{ q:"Why might the exact same RTL-SDR dongle and decoding software produce a clean NOAA APT image with one antenna and pure noise with another?",
+    choices:["Antenna choice — a matched, properly-placed antenna (e.g. a 137MHz QFH) captures the signal dramatically better than a generic mismatched whip, independent of the electronics or software","The dongle itself wears out between antenna swaps","Software settings alone determine image quality, regardless of antenna","NOAA satellites only transmit to specific antenna brands"],
+    a:0, ex:"Antenna matching (frequency, polarization, placement) is the single biggest lever in this project — the same electronics and software can go from unusable to clean purely from an antenna change." },
+  links:[
+    {type:"watch", vid:"PWWGDL5tC_I", channel:"Ham Radio Crash Course", label:"How To Receive Images Directly From NOAA Satellites", url:"https://www.youtube.com/watch?v=PWWGDL5tC_I"}
+  ]
+}
+];
+
+const QUIZ = [
+ {q:"What does a single IQ sample actually represent, and why does that matter for demodulation?",
+  o:["A complex number capturing both magnitude and phase — the exact information different demodulation algorithms (AM vs FM) each need in different ways","A single real number representing only signal strength","The exact station name currently broadcasting","A pre-decoded audio sample, ready to play without further processing"],c:0,
+  ex:"IQ samples encode magnitude AND phase as a complex number. AM demodulation uses the magnitude; FM demodulation uses how fast the phase changes — genuinely different math on the same underlying data type."},
+ {q:"A signal is weak and noisy at literally every frequency, but improves noticeably once the dongle is moved away from the computer on a USB extension cable. What's the most likely cause?",
+  o:["USB port RF noise from the computer itself, swamping weak signals across the whole spectrum","A defective antenna connector","GQRX's frequency correction setting","The dongle needs a firmware update"],c:0,
+  ex:"A problem affecting every frequency equally, that improves with physical distance from the computer, points to broadband RF noise from the USB port/computer — not a frequency-specific issue."},
+ {q:"Given the ADS-B message byte 0x8D as its first byte, what is the Downlink Format, and how is it extracted?",
+  o:["17 — the top 5 bits of the first byte (10001101 → 10001 = 17)","141 — the entire first byte read as a plain integer","8 — just the first hex digit","13 — the bottom 5 bits of the first byte"],c:0,
+  ex:"The Downlink Format is specifically the top 5 bits of byte 0. 0x8D = 10001101 in binary; the top 5 bits are 10001, which is 17 in decimal — DF 17 means ADS-B Extended Squitter."},
+ {q:"Why does an aircraft's ICAO address stay exactly the same across many different ADS-B messages while position and altitude keep changing?",
+  o:["The ICAO address is a fixed identifier for that specific airframe, not a measurement, so it never changes between messages from the same plane","ICAO addresses reset every time the plane changes altitude","Every aircraft shares the same ICAO address by design","The ICAO address is randomly regenerated on each broadcast"],c:0,
+  ex:"ICAO address is identity, not a sensor reading — that's exactly why it's the one field guaranteed to stay constant while position/altitude/velocity (which are measurements) update from message to message."},
+ {q:"Why can a dedicated 137MHz QFH (quadrifilar helix) antenna dramatically outperform a basic whip for receiving NOAA APT satellite passes?",
+  o:["It's tuned for the exact frequency AND circularly polarized to match the satellite's own rotating polarization — a linear whip loses signal specifically from that polarization mismatch","QFH antennas work by amplifying the software's decoding algorithm","Whip antennas are physically incapable of receiving any signal above 100MHz","The satellite only transmits toward QFH-shaped antennas specifically"],c:0,
+  ex:"Two separate real effects compound: frequency matching (tuned for 137MHz specifically) and polarization matching (circular, matching the satellite) — a generic linear whip misses out on both."},
+ {q:"Why does the buying guide specifically warn against unbranded 'USB TV tuner' listings instead of dongles explicitly sold as RTL-SDR?",
+  o:["Many use a different, incompatible tuner chip despite looking identical in photos — worse performance or outright incompatibility with SDR software","TV tuners are illegal to own without a broadcast license","RTL-SDR dongles and TV tuners are always exactly the same hardware","Unbranded dongles are always more expensive than branded ones"],c:0,
+  ex:"The RTL2832U + R820T2 chipset combination is the de facto RTL-SDR standard the open-source community tests against — a generic 'looks the same' TV tuner often uses a different, worse chipset entirely."},
+ {q:"Why does a receive-only project like this one carry no license requirement, while transmitting on the same frequencies would?",
+  o:["Listening to radio spectrum doesn't add any signal to the airwaves or risk interfering with anything, while transmitting can interfere with licensed users and requires authorization","Any RTL-SDR dongle is physically incapable of ever being used to transmit","Receiving is illegal everywhere except with dedicated hardware like this dongle","License requirements only apply to satellite communications, never terrestrial radio"],c:0,
+  ex:"Regulation exists to prevent harmful interference on the airwaves. Passively receiving adds nothing to the spectrum and risks nothing for other users — the reason this entire project can be done legally and freely, unlike building a transmitter."}
+];
+
+/* Key terms — pulled from the bolded/code terms across the four lessons above. */
+const KEY_TERMS = [
+  ["IQ sample", "A complex number (I + jQ) capturing both magnitude and phase at one instant — not just a plain amplitude reading."],
+  ["Software-defined demodulation", "The same raw IQ stream can be demodulated as AM, FM, or anything else, purely by running different math on it in software."],
+  ["RTL2832U + R820T2", "The de facto standard RTL-SDR chipset combination — buy a dongle explicitly sold as RTL-SDR, not a generic TV tuner."],
+  ["USB extension cable (RF noise fix)", "Moves the dongle away from the computer's own RF noise, often fixing weak/noisy reception across every frequency at once."],
+  ["GQRX waterfall", "Plots frequency (horizontal) against time (vertical), color-coded by signal strength — a visual map of the whole spectrum at once."],
+  ["WFM mode / squelch", "WFM (mono/stereo) demodulates broadcast FM; squelch mutes audio below a signal-strength threshold to suppress noise."],
+  ["AM envelope detection", "AM demodulation recovers the message from the magnitude (sqrt(I²+Q²)) of the IQ signal."],
+  ["FM phase-difference demod", "FM demodulation recovers the message from how fast the phase is changing between consecutive IQ samples."],
+  ["ADS-B Extended Squitter", "Aircraft self-broadcast their position, altitude, and identity on 1090MHz; DF 17 specifically means this message type."],
+  ["Downlink Format (DF)", "The top 5 bits of an ADS-B message's first byte, encoding the message type."],
+  ["ICAO address", "A fixed 24-bit identifier for a specific airframe — stays constant across every message that plane sends."],
+  ["dump1090", "Decodes raw ADS-B broadcasts from IQ samples into a live map of nearby aircraft."],
+  ["NOAA APT", "Automatic Picture Transmission — weather images broadcast at ~137MHz during a satellite's overhead pass."],
+  ["137MHz / QFH antenna", "The APT frequency, and the quadrifilar-helix antenna type whose circular polarization matches the satellite's own."],
+  ["Antenna matching (biggest lever)", "The same dongle and software can go from unusable noise to a clean signal purely from an antenna/placement change."],
+  ["rtl_433", "Decodes many simple 433MHz ISM-band devices (weather stations, sensors) with the same dongle."],
+  ["Receive-only, no license", "Passively receiving adds nothing to the airwaves and risks no interference — unlike transmitting, which requires authorization."],
+  ["Compact Position Reporting (CPR)", "The technique ADS-B uses to encode aircraft position efficiently — needs two messages to resolve an exact location."]
+];
+
+const STATE_KEY = 'chainK_rtlSdrReceiver_v1';
+function loadState(){
+  try{ const raw = localStorage.getItem(STATE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function saveState(){
+  try{
+    localStorage.setItem(STATE_KEY, JSON.stringify({
+      answered, quizScore: score, quizDone: [...done], fcKnown: [...fcKnown],
+      popLastScore, popLastTotal, popAttemptsCount, matchBestAttempts,
+      sdrModType, sdrFreq, sdrDepthOrDev, sdrNoise, sdrAdsbHex
+    }));
+  }catch(e){ /* storage unavailable — progress just won't persist this session */ }
+}
+const SAVED = loadState();
+
+let idx = 0;
+const answered = SAVED && Array.isArray(SAVED.answered) && SAVED.answered.length === LESSONS.length
+  ? SAVED.answered.slice() : new Array(LESSONS.length).fill(false);
+
+function videoCard(l){
+  return `<a class="video-card" href="${l.url}" target="_blank" rel="noopener">
+    <span class="video-card-thumb" style="background-image:url('https://img.youtube.com/vi/${l.vid}/hqdefault.jpg')">
+      <span class="video-card-play">&#9658;</span></span>
+    <span class="video-card-info"><b>${l.label}</b><span>${l.channel} &middot; opens on YouTube</span></span></a>`;
+}
+function renderLinks(links){
+  if(!links || !links.length) return '';
+  const rows = links.map(l => l.type === 'watch'
+    ? videoCard(l)
+    : `<div><span class="kind">${l.type}</span><a href="${l.url}" target="_blank" rel="noopener">${l.label}</a></div>`).join('');
+  return `<div class="links"><h4 style="margin:0 0 6px;font-size:14px;color:var(--accent)">Continue learning</h4>${rows}</div>`;
+}
+function renderQuick(i){
+  const q = LESSONS[i].quick;
+  if(!q) return '';
+  const isDone = answered[i];
+  return `<div class="qc"><h4>Quick check</h4><p style="margin:0 0 6px;font-size:14px">${q.q}</p>
+    <div id="qcopts">${q.choices.map((c,ci)=>`<button class="opt ${isDone && ci===q.a?'correct':''}" data-ci="${ci}" ${isDone?'disabled':''}>${c}</button>`).join('')}</div>
+    <div class="explain" id="qcex" style="${isDone?'display:block':''}">${isDone?q.ex:''}</div></div>`;
+}
+
+const TOOLS = ['Flashcards','Match','Pop Quiz','Cheat Sheet','IQ & Demodulation Simulator','Report Card'];
+function pillsHTML(){
+  const lessonPills = LESSONS.map((l,i)=>
+    `<button class="pill ${i===idx?'active':''} ${answered[i]?'done':''}" data-i="${i}">${i+1}. ${l.short}</button>`).join('');
+  const quizPill = `<button class="pill ${idx===LESSONS.length?'active':''}" data-i="${LESSONS.length}">Quiz</button>`;
+  const toolPills = TOOLS.map((t,ti)=>{
+    const i = LESSONS.length + 1 + ti;
+    return `<button class="pill tool ${i===idx?'active':''}" data-i="${i}">${t}</button>`;
+  }).join('');
+  return lessonPills + quizPill + toolPills;
+}
+function render(){
+  document.getElementById('pills').innerHTML = pillsHTML();
+  const isQuiz = idx === LESSONS.length;
+  const isTool = idx > LESSONS.length;
+  document.querySelector('main').style.display = (isQuiz || isTool) ? 'none' : 'grid';
+  document.getElementById('quizWrap').style.display = isQuiz ? 'block' : 'none';
+  document.getElementById('toolWrap').style.display = isTool ? 'block' : 'none';
+  document.getElementById('nav').style.display = isTool ? 'none' : 'flex';
+  if(isTool){ renderTool(idx - LESSONS.length - 1); return; }
+  if(isQuiz){ document.getElementById('counter').textContent = 'Final quiz'; renderQuiz(); syncNav(); return; }
+  const L = LESSONS[idx];
+  document.getElementById('lesson').innerHTML =
+    `<h2>${idx+1}. ${L.title}</h2>${L.body}${renderLinks(L.links)}${renderQuick(idx)}`;
+  document.getElementById('practice').innerHTML = L.practice;
+  document.getElementById('counter').textContent = `Lesson ${idx+1} of ${LESSONS.length}`;
+  const opts = document.getElementById('qcopts');
+  if(opts) opts.addEventListener('click', e => {
+    const b = e.target.closest('.opt'); if(!b || b.disabled) return;
+    const q = LESSONS[idx].quick, pick = +b.dataset.ci;
+    [...opts.children].forEach((el,ci)=>{ el.disabled = true;
+      if(ci===q.a) el.classList.add('correct'); else if(ci===pick) el.classList.add('wrong'); });
+    const ex = document.getElementById('qcex'); ex.textContent = q.ex; ex.style.display='block';
+    answered[idx] = true;
+    saveState();
+    syncNav(); render2Pills();
+  });
+  syncNav();
+}
+function render2Pills(){
+  document.querySelectorAll('.pill').forEach((p,i)=>{ if(answered[i]) p.classList.add('done'); });
+}
+function syncNav(){
+  document.getElementById('prev').disabled = idx === 0;
+  const n = document.getElementById('next');
+  const gated = idx < LESSONS.length && !answered[idx];
+  n.disabled = idx > LESSONS.length - 1 || gated;
+  n.textContent = gated ? 'Answer the quick check to continue' : 'Next →';
+}
+
+let score = SAVED && Number.isFinite(SAVED.quizScore) ? SAVED.quizScore : 0;
+let done = new Set(SAVED && Array.isArray(SAVED.quizDone) ? SAVED.quizDone : []);
+function renderQuiz(){
+  document.getElementById('total').textContent = QUIZ.length;
+  document.getElementById('quiz').innerHTML = QUIZ.map((it,qi)=>{
+    const isDone = done.has(qi);
+    return `<div class="q"><p>${qi+1}. ${it.q}</p>
+      <div data-q="${qi}">${it.o.map((o,oi)=>`<button class="opt ${isDone && oi===it.c?'correct':''}" data-q="${qi}" data-o="${oi}" ${isDone?'disabled':''}>${o}</button>`).join('')}</div>
+      <div class="explain" id="qex${qi}" style="${isDone?'display:block':''}">${isDone?it.ex:''}</div></div>`;
+  }).join('');
+  document.getElementById('score').textContent = score;
+}
+document.getElementById('quiz').addEventListener('click', e => {
+  const b = e.target.closest('.opt'); if(!b || b.disabled) return;
+  const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi];
+  if(done.has(qi)) return; done.add(qi);
+  b.parentElement.querySelectorAll('.opt').forEach((el,i)=>{ el.disabled = true;
+    if(i===it.c) el.classList.add('correct'); else if(i===oi) el.classList.add('wrong'); });
+  const ex = document.getElementById('qex'+qi); ex.textContent = it.ex; ex.style.display='block';
+  if(oi===it.c){ score++; document.getElementById('score').textContent = score; }
+  saveState();
+});
+
+function shuffled(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+function renderTool(view){
+  if(view===0) return renderFlash();
+  if(view===1) return renderMatch();
+  if(view===2) return renderPop();
+  if(view===3) return renderCheat();
+  if(view===4) return renderSdrSim();
+  if(view===5) return renderReportCard();
+}
+
+let fcIdx = 0;
+const fcKnown = new Set(SAVED && Array.isArray(SAVED.fcKnown) ? SAVED.fcKnown : []);
+function renderFlash(){
+  const t = KEY_TERMS[fcIdx];
+  document.getElementById('toolWrap').innerHTML = `
+    <h3 style="color:var(--accent);margin-top:0">Flashcards</h3>
+    <p style="color:var(--muted);font-size:13px">Click a card to flip it. ${fcKnown.size} / ${KEY_TERMS.length} marked known.</p>
+    <div class="flash-stage"><div class="flash-card" id="flashCard">
+      <div class="flash-face flash-front">${t[0]}</div>
+      <div class="flash-face flash-back">${t[1]}</div>
+    </div></div>
+    <div class="flash-controls">
+      <button class="ghost" id="fcPrev">&larr; Prev</button>
+      <span class="counter" style="margin:0 6px">${fcIdx+1} / ${KEY_TERMS.length}</span>
+      <button class="ghost" id="fcKnow">${fcKnown.has(fcIdx) ? '✓ Known' : 'Mark known'}</button>
+      <button class="ghost" id="fcNext">Next &rarr;</button>
+    </div>`;
+  document.getElementById('flashCard').onclick = () => document.getElementById('flashCard').classList.toggle('flipped');
+  document.getElementById('fcPrev').onclick = () => { fcIdx = (fcIdx - 1 + KEY_TERMS.length) % KEY_TERMS.length; renderFlash(); };
+  document.getElementById('fcNext').onclick = () => { fcIdx = (fcIdx + 1) % KEY_TERMS.length; renderFlash(); };
+  document.getElementById('fcKnow').onclick = () => {
+    if(fcKnown.has(fcIdx)) fcKnown.delete(fcIdx); else fcKnown.add(fcIdx);
+    saveState(); renderFlash();
+  };
+}
+
+let matchPairs = [], matchTermOrder = [], matchDefOrder = [], matchSel = null, matchMatched = new Set(), matchAttempts = 0;
+let matchBestAttempts = SAVED && Number.isFinite(SAVED.matchBestAttempts) ? SAVED.matchBestAttempts : null;
+function newMatchRound(){
+  const n = Math.min(8, KEY_TERMS.length);
+  const idxs = shuffled([...Array(KEY_TERMS.length).keys()]).slice(0, n);
+  matchPairs = idxs.map(i => ({ key:i, term:KEY_TERMS[i][0], def:KEY_TERMS[i][1] }));
+  matchTermOrder = shuffled(matchPairs);
+  matchDefOrder = shuffled(matchPairs);
+  matchSel = null; matchMatched = new Set(); matchAttempts = 0;
+}
+function matchBtn(p, side){
+  const isMatched = matchMatched.has(p.key);
+  const isSel = matchSel && matchSel.key === p.key && matchSel.side === side;
+  const label = side === 'term' ? p.term : p.def;
+  return `<button class="match-btn ${isMatched?'matched':''} ${isSel?'sel':''}" data-key="${p.key}" data-side="${side}" ${isMatched?'disabled':''}>${label}</button>`;
+}
+function matchStatusText(){
+  if(matchMatched.size === matchPairs.length) return `Solved in ${matchAttempts} attempts!`;
+  return `Match each term to its definition. Attempts: ${matchAttempts}`;
+}
+function renderMatch(){
+  if(!matchPairs.length) newMatchRound();
+  document.getElementById('toolWrap').innerHTML = `
+    <h3 style="color:var(--accent);margin-top:0">Match</h3>
+    <p style="color:var(--muted);font-size:13px" id="matchStatus">${matchStatusText()}</p>
+    <div class="match-grid">
+      <div class="match-col">${matchTermOrder.map(p => matchBtn(p,'term')).join('')}</div>
+      <div class="match-col">${matchDefOrder.map(p => matchBtn(p,'def')).join('')}</div>
+    </div>
+    <button class="ghost" id="matchNew" style="margin-top:14px">New round</button>`;
+  document.querySelectorAll('.match-btn').forEach(b => b.addEventListener('click', onMatchClick));
+  document.getElementById('matchNew').onclick = () => { newMatchRound(); renderMatch(); };
+}
+function onMatchClick(e){
+  const b = e.currentTarget;
+  const key = +b.dataset.key, side = b.dataset.side;
+  if(matchMatched.has(key)) return;
+  if(!matchSel || matchSel.side === side){ matchSel = { key, side }; renderMatch(); return; }
+  matchAttempts++;
+  if(matchSel.key === key){
+    matchMatched.add(key);
+    matchSel = null;
+    if(matchMatched.size === matchPairs.length){
+      if(matchBestAttempts === null || matchAttempts < matchBestAttempts) matchBestAttempts = matchAttempts;
+      saveState();
+    }
+    renderMatch();
+  } else {
+    b.classList.add('wrong');
+    const status = document.getElementById('matchStatus');
+    if(status) status.textContent = `Not quite. Attempts: ${matchAttempts}`;
+    setTimeout(() => { matchSel = null; renderMatch(); }, 500);
+  }
+}
+
+function popPool(){
+  const fromLessons = LESSONS.filter(l => l.quick).map(l => ({ q:l.quick.q, opts:l.quick.choices, correct:l.quick.a, ex:l.quick.ex }));
+  const fromQuiz = QUIZ.map(q => ({ q:q.q, opts:q.o, correct:q.c, ex:q.ex }));
+  return [...fromLessons, ...fromQuiz];
+}
+let popSet = [], popIdx = 0, popScore = 0, popDone = false;
+let popLastScore = SAVED && Number.isFinite(SAVED.popLastScore) ? SAVED.popLastScore : null;
+let popLastTotal = SAVED && Number.isFinite(SAVED.popLastTotal) ? SAVED.popLastTotal : null;
+let popAttemptsCount = SAVED && Number.isFinite(SAVED.popAttemptsCount) ? SAVED.popAttemptsCount : 0;
+function newPop(){
+  const pool = shuffled(popPool());
+  popSet = pool.slice(0, Math.min(5, pool.length));
+  popIdx = 0; popScore = 0; popDone = false;
+}
+function renderPop(){
+  if(!popSet.length) newPop();
+  if(popDone){
+    document.getElementById('toolWrap').innerHTML = `
+      <h3 style="color:var(--accent);margin-top:0">Pop Quiz</h3>
+      <p>Score: <b>${popScore} / ${popSet.length}</b></p>
+      <button class="ghost" id="popAgain">Try another 5</button>`;
+    document.getElementById('popAgain').onclick = () => { newPop(); renderPop(); };
+    return;
+  }
+  const it = popSet[popIdx];
+  document.getElementById('toolWrap').innerHTML = `
+    <h3 style="color:var(--accent);margin-top:0">Pop Quiz</h3>
+    <p style="color:var(--muted);font-size:13px">Question ${popIdx+1} of ${popSet.length} &middot; Score so far: ${popScore}</p>
+    <div class="qc"><p style="font-weight:600;font-size:14px;margin:0 0 6px">${it.q}</p>
+      <div id="popOpts">${it.opts.map((o,oi)=>`<button class="opt" data-oi="${oi}">${o}</button>`).join('')}</div>
+      <div class="explain" id="popEx"></div></div>
+    <button class="ghost" id="popNext" style="margin-top:12px;display:none">Next &rarr;</button>`;
+  document.getElementById('popOpts').addEventListener('click', e => {
+    const b = e.target.closest('.opt'); if(!b || b.disabled) return;
+    const oi = +b.dataset.oi;
+    [...document.getElementById('popOpts').children].forEach((el,i) => {
+      el.disabled = true;
+      if(i===it.correct) el.classList.add('correct'); else if(i===oi) el.classList.add('wrong');
+    });
+    if(oi === it.correct) popScore++;
+    const ex = document.getElementById('popEx'); ex.textContent = it.ex; ex.style.display = 'block';
+    document.getElementById('popNext').style.display = 'inline-block';
+  });
+  document.getElementById('popNext').onclick = () => {
+    popIdx++;
+    if(popIdx >= popSet.length){
+      popDone = true;
+      popLastScore = popScore; popLastTotal = popSet.length; popAttemptsCount++;
+      saveState();
+    }
+    renderPop();
+  };
+}
+
+const CHEATSHEET = `
+  <h3 style="color:var(--accent);margin-top:0">Cheat Sheet</h3>
+  <table class="cheat">
+    <tr><th>Task</th><th>Rule / command</th></tr>
+    <tr><td>IQ sample</td><td>Complex number (I + jQ) — magnitude AND phase, at one instant</td></tr>
+    <tr><td>AM demod</td><td>magnitude = sqrt(I² + Q²)</td></tr>
+    <tr><td>FM demod</td><td>rate of phase change between consecutive samples (phase-difference discriminator)</td></tr>
+    <tr><td>Fix weak/noisy signal everywhere</td><td>USB extension cable — moves dongle away from computer's own RF noise</td></tr>
+    <tr><td>Broadcast FM mode</td><td>WFM (mono/stereo) in GQRX</td></tr>
+    <tr><td>ADS-B Downlink Format</td><td>Top 5 bits of byte 0; DF 17 = Extended Squitter</td></tr>
+    <tr><td>ADS-B ICAO address</td><td>Bytes 2-4 (hex chars 2-7) — fixed per airframe</td></tr>
+    <tr><td>ADS-B decoder</td><td><code>dump1090</code></td></tr>
+    <tr><td>NOAA APT frequency</td><td>~137MHz</td></tr>
+    <tr><td>Best APT antenna</td><td>QFH (quadrifilar helix) — frequency + circular-polarization matched</td></tr>
+    <tr><td>Biggest single lever</td><td>Antenna choice/placement, not software settings</td></tr>
+    <tr><td>Correct dongle chipset</td><td>RTL2832U + R820T2 — buy one explicitly sold as "RTL-SDR"</td></tr>
+  </table>
+  <p style="color:var(--muted);font-size:12px;margin-top:10px">Full lesson content covers the reasoning
+     behind each row — this page is for last-minute recall, not first-time learning.</p>`;
+function renderCheat(){ document.getElementById('toolWrap').innerHTML = CHEATSHEET; }
+
+/* IQ & Demodulation Simulator — this project's own Simulation tab.
+   Two real, checkable panels: a genuine AM/FM demodulator run on
+   synthetic IQ samples (the exact algorithms exercises/sdr_dsp.py
+   implements — am_envelope's sqrt(I²+Q²), and fm_instantaneous_freq's
+   phase-difference discriminator), and a real ADS-B message decoder
+   that extracts the Downlink Format and ICAO address by the actual
+   bit layout, not a canned lookup. */
+let sdrModType = SAVED && SAVED.sdrModType ? SAVED.sdrModType : 'FM';
+let sdrFreq = SAVED && Number.isFinite(SAVED.sdrFreq) ? SAVED.sdrFreq : 5;
+let sdrDepthOrDev = SAVED && Number.isFinite(SAVED.sdrDepthOrDev) ? SAVED.sdrDepthOrDev : 40;
+let sdrNoise = SAVED && Number.isFinite(SAVED.sdrNoise) ? SAVED.sdrNoise : 0;
+let sdrAdsbHex = SAVED && SAVED.sdrAdsbHex ? SAVED.sdrAdsbHex : '8D4840D6202CC371C32CE0576098';
+
+const SDR_N = 120, SDR_FS = 2000;
+function sdrRand(noise){ return (Math.random()*2 - 1) * noise; }
+function sdrGenerate(){
+  const samples = [];
+  for(let n = 0; n < SDR_N; n++){
+    const t = n / SDR_FS;
+    let I, Q, msg;
+    if(sdrModType === 'AM'){
+      msg = Math.cos(2*Math.PI*sdrFreq*t);
+      const depth = Math.min(sdrDepthOrDev, 90) / 100;
+      const env = 1 + depth*msg;
+      I = env + sdrRand(sdrNoise); Q = 0 + sdrRand(sdrNoise);
+    } else {
+      msg = Math.cos(2*Math.PI*sdrFreq*t);
+      const theta = (sdrDepthOrDev / sdrFreq) * Math.sin(2*Math.PI*sdrFreq*t);
+      I = Math.cos(theta) + sdrRand(sdrNoise); Q = Math.sin(theta) + sdrRand(sdrNoise);
+    }
+    samples.push({ t, I, Q, msg });
+  }
+  return samples;
+}
+function sdrDemodulate(samples){
+  if(sdrModType === 'AM'){
+    return samples.map(s => Math.sqrt(s.I*s.I + s.Q*s.Q));
+  }
+  const phases = samples.map(s => Math.atan2(s.Q, s.I));
+  const out = [];
+  for(let n = 0; n < phases.length; n++){
+    if(n === 0){ out.push(0); continue; }
+    let d = phases[n] - phases[n-1];
+    while(d > Math.PI) d -= 2*Math.PI;
+    while(d < -Math.PI) d += 2*Math.PI;
+    out.push(d * SDR_FS / (2*Math.PI));
+  }
+  if(out.length > 1) out[0] = out[1];
+  return out;
+}
+function sdrEstimateFreq(signal){
+  const mean = signal.reduce((a,b)=>a+b,0) / signal.length;
+  let crossings = 0;
+  for(let n = 1; n < signal.length; n++){
+    const prev = signal[n-1] - mean, cur = signal[n] - mean;
+    if((prev >= 0) !== (cur >= 0)) crossings++;
+  }
+  const duration = SDR_N / SDR_FS;
+  return crossings / (2 * duration);
+}
+function sdrPolyline(values, w, h, color, scaleMin, scaleMax){
+  const n = values.length;
+  const pts = values.map((v,i) => {
+    const x = (i/(n-1)) * w;
+    const norm = (v - scaleMin) / (scaleMax - scaleMin || 1);
+    const y = h - norm*h;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/>`;
+}
+function sdrPlotSvg(samples, demod){
+  const w = 460, h = 70;
+  const Is = samples.map(s=>s.I), Qs = samples.map(s=>s.Q);
+  const iMin = Math.min(...Is, ...Qs) - 0.2, iMax = Math.max(...Is, ...Qs) + 0.2;
+  const dMin = Math.min(...demod), dMax = Math.max(...demod);
+  const pad = (dMax-dMin)*0.15 || 0.5;
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px">I (cyan) / Q (magenta) — baseband IQ samples</div>
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <rect width="${w}" height="${h}" fill="#000"/>
+      ${sdrPolyline(Is, w, h, '#22d3ee', iMin, iMax)}
+      ${sdrPolyline(Qs, w, h, '#f472b6', iMin, iMax)}
+    </svg>
+    <div style="font-size:11px;color:var(--muted);margin:6px 0 2px">Demodulated output (green) vs true modulating tone (dashed gray)</div>
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <rect width="${w}" height="${h}" fill="#000"/>
+      ${sdrPolyline(samples.map(s=>s.msg * (sdrModType==='AM' ? 1 : sdrDepthOrDev) + (sdrModType==='AM' ? 1 : 0)), w, h, '#64748B', dMin-pad, dMax+pad)}
+      ${sdrPolyline(demod, w, h, '#4ade80', dMin-pad, dMax+pad)}
+    </svg>`;
+}
+function sdrUpdateOutputs(){
+  const samples = sdrGenerate();
+  const demod = sdrDemodulate(samples);
+  const estFreq = sdrEstimateFreq(demod);
+  const plotEl = document.getElementById('sdrPlot');
+  if(plotEl) plotEl.innerHTML = sdrPlotSvg(samples, demod);
+  const readoutEl = document.getElementById('sdrReadout');
+  if(readoutEl) readoutEl.innerHTML =
+    `<b>Mode:</b> ${sdrModType} &nbsp; <b>Input tone:</b> ${sdrFreq}Hz &nbsp;
+     <b>${sdrModType==='AM' ? 'Depth' : 'Deviation'}:</b> ${sdrDepthOrDev}${sdrModType==='AM' ? '%' : 'Hz'} &nbsp;
+     <b>Noise:</b> ${sdrNoise}<br>
+     <b>Recovered frequency (zero-crossing estimate):</b> ${estFreq.toFixed(1)}Hz
+     ${Math.abs(estFreq - sdrFreq) < 2 ? ' <span style="color:var(--good)">✓ matches input</span>' : ' <span style="color:var(--warn)">off — try lowering noise</span>'}`;
+}
+function sdrAdsbDecode(hex){
+  const clean = hex.trim().toUpperCase();
+  if(clean.length < 8 || !/^[0-9A-F]+$/.test(clean)){
+    return { error: 'Not enough valid hex characters (need at least 8: DF byte + 3 ICAO bytes).' };
+  }
+  const byte0 = parseInt(clean.slice(0,2), 16);
+  const df = (byte0 & 0xF8) >> 3;
+  const icao = clean.slice(2,8);
+  return { df, icao, note: df === 17 ? 'DF 17 — ADS-B Extended Squitter (the type this project decodes).' : `DF ${df} — a different Mode S message type, not an ADS-B Extended Squitter.` };
+}
+function sdrUpdateAdsb(){
+  const out = sdrAdsbDecode(sdrAdsbHex);
+  const el = document.getElementById('sdrAdsbOut');
+  if(!el) return;
+  if(out.error){ el.innerHTML = `<span style="color:var(--bad)">${out.error}</span>`; return; }
+  el.innerHTML = `<b>Downlink Format:</b> ${out.df} &nbsp; <b>ICAO address:</b> ${out.icao}<br>${out.note}`;
+}
+function renderSdrSim(){
+  document.getElementById('toolWrap').innerHTML = `
+    <h3 style="color:var(--accent);margin-top:0">IQ &amp; Demodulation Simulator</h3>
+    <p style="color:var(--muted);font-size:13px">Two real, checkable panels — no canned demo. Generate
+       synthetic IQ samples and run the exact AM/FM demodulation math from
+       <code>exercises/sdr_dsp.py</code> on them, then decode a real ADS-B message's fields by the
+       actual bit layout.</p>
+
+    <div class="sdr-section">
+      <h4>AM / FM demodulator</h4>
+      <div class="sdr-row">
+        <label>Mode
+          <select id="sdrModeSel">
+            <option value="AM" ${sdrModType==='AM'?'selected':''}>AM (envelope)</option>
+            <option value="FM" ${sdrModType==='FM'?'selected':''}>FM (phase-difference)</option>
+          </select>
+        </label>
+        <label>Message tone (Hz) <input type="number" id="sdrFreqInput" value="${sdrFreq}" min="1" max="100" step="1"></label>
+        <label id="sdrDepthLabel">${sdrModType==='AM' ? 'Depth (%)' : 'Deviation (Hz)'} <input type="number" id="sdrDepthInput" value="${sdrDepthOrDev}" min="1" max="500" step="1"></label>
+        <label>Noise <input type="number" id="sdrNoiseInput" value="${sdrNoise}" min="0" max="0.5" step="0.02"></label>
+      </div>
+      <div class="sdr-plot" id="sdrPlot"></div>
+      <div class="sdr-readout" id="sdrReadout"></div>
+    </div>
+
+    <div class="sdr-section">
+      <h4>ADS-B message decoder (mirrors <code>exercises/sdr_dsp.py</code>)</h4>
+      <div class="sdr-hexrow">
+        <input type="text" id="sdrAdsbInput" value="${sdrAdsbHex}" placeholder="paste a raw ADS-B hex message">
+        <button class="ghost" id="sdrAdsbReset" style="padding:6px 10px">Reset example</button>
+      </div>
+      <div class="sdr-readout" id="sdrAdsbOut"></div>
+    </div>`;
+
+  sdrUpdateOutputs();
+  sdrUpdateAdsb();
+
+  document.getElementById('sdrModeSel').addEventListener('change', e => {
+    sdrModType = e.target.value;
+    sdrDepthOrDev = sdrModType === 'AM' ? 40 : 150;
+    document.getElementById('sdrDepthLabel').firstChild.textContent = sdrModType==='AM' ? 'Depth (%) ' : 'Deviation (Hz) ';
+    document.getElementById('sdrDepthInput').value = sdrDepthOrDev;
+    saveState(); sdrUpdateOutputs();
+  });
+  document.getElementById('sdrFreqInput').addEventListener('input', e => {
+    sdrFreq = Math.max(1, +e.target.value || 1); saveState(); sdrUpdateOutputs();
+  });
+  document.getElementById('sdrDepthInput').addEventListener('input', e => {
+    sdrDepthOrDev = +e.target.value || 0; saveState(); sdrUpdateOutputs();
+  });
+  document.getElementById('sdrNoiseInput').addEventListener('input', e => {
+    sdrNoise = +e.target.value || 0; saveState(); sdrUpdateOutputs();
+  });
+  document.getElementById('sdrAdsbInput').addEventListener('input', e => {
+    sdrAdsbHex = e.target.value; saveState(); sdrUpdateAdsb();
+  });
+  document.getElementById('sdrAdsbReset').onclick = () => {
+    sdrAdsbHex = '8D4840D6202CC371C32CE0576098';
+    document.getElementById('sdrAdsbInput').value = sdrAdsbHex;
+    saveState(); sdrUpdateAdsb();
+  };
+}
+
+function letterGrade(pct){
+  if(pct === null) return { text:'—', cls:'grade-dash' };
+  if(pct >= 90) return { text:'A', cls:'grade-A' };
+  if(pct >= 80) return { text:'B', cls:'grade-B' };
+  if(pct >= 70) return { text:'C', cls:'grade-C' };
+  if(pct >= 60) return { text:'D', cls:'grade-D' };
+  return { text:'F', cls:'grade-F' };
+}
+function renderReportCard(){
+  const lessonsDone = answered.filter(Boolean).length;
+  const quizPct = QUIZ.length ? Math.round((score / QUIZ.length) * 100) : null;
+  const quizAttempted = done.size > 0;
+  const grade = letterGrade(quizAttempted ? quizPct : null);
+  const overallItems = lessonsDone + (quizAttempted ? 1 : 0);
+  const overallTotal = LESSONS.length + 1;
+  const overallPct = Math.round((overallItems / overallTotal) * 100);
+  const now = new Date();
+  document.getElementById('toolWrap').innerHTML = `
+    <div class="report-card">
+      <h3 style="color:var(--accent);margin-top:0">Report Card</h3>
+      <p style="color:var(--muted);font-size:12px;margin-top:-6px">RTL-SDR Receiver &middot; generated ${now.toLocaleDateString()} ${now.toLocaleTimeString()}</p>
+      <div class="report-overall">
+        <span class="big ${grade.cls}">${grade.text}</span>
+        <span style="color:var(--muted);font-size:13px">Final quiz grade${quizAttempted ? '' : ' (not yet taken)'}</span>
+      </div>
+      <h4>Lessons</h4>
+      <div class="report-row"><span>Quick checks completed</span><span class="grade">${lessonsDone} / ${LESSONS.length}</span></div>
+      <h4>Final Quiz</h4>
+      <div class="report-row"><span>Score</span><span class="grade">${quizAttempted ? `${score} / ${QUIZ.length} (${quizPct}%)` : 'Not attempted'}</span></div>
+      <h4>Pop Quiz</h4>
+      <div class="report-row"><span>Most recent 5-question run</span><span class="grade">${popLastScore !== null ? `${popLastScore} / ${popLastTotal}` : 'Not attempted'}</span></div>
+      <div class="report-row"><span>Runs completed</span><span class="grade">${popAttemptsCount}</span></div>
+      <h4>Flashcards</h4>
+      <div class="report-row"><span>Terms marked known</span><span class="grade">${fcKnown.size} / ${KEY_TERMS.length}</span></div>
+      <h4>Match Game</h4>
+      <div class="report-row"><span>Best round (fewest attempts)</span><span class="grade">${matchBestAttempts !== null ? matchBestAttempts : 'Not completed'}</span></div>
+      <h4>Overall</h4>
+      <div class="report-row"><span>Lessons + quiz completed</span><span class="grade">${overallItems} / ${overallTotal} (${overallPct}%)</span></div>
+      <button class="ghost" id="printBtn">🖨️ Print / Save as PDF</button>
+      <p style="color:var(--muted);font-size:11px;margin-top:8px">In the print dialog, choose <b>Save as PDF</b> and
+         save it into this project's <code>docs/</code> folder to keep a dated record.</p>
+    </div>`;
+  document.getElementById('printBtn').onclick = () => window.print();
+}
+
+document.getElementById('pills').addEventListener('click', e => {
+  const p = e.target.closest('.pill'); if(!p) return; idx = +p.dataset.i; render();
+});
+document.getElementById('prev').onclick = () => { if(idx>0){ idx--; render(); } };
+document.getElementById('next').onclick = () => { if(idx<LESSONS.length){ idx++; render(); } };
+render();
+</script>
+</body></html>
